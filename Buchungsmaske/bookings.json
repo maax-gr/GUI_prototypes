@@ -1,0 +1,17 @@
+{
+  "next_receipt_number": 1002,
+  "bookings": [
+    {
+      "receipt_number": "1000",
+      "start_account": "12345678",
+      "start_system": "ORAG",
+      "target_account": "87654321",
+      "target_system": "KK",
+      "value_date": "28.07.2026",
+      "amount": "1000",
+      "service_type": "1",
+      "status": "freigegeben",
+      "timestamp": "28.07.2026 21:14:51"
+    }
+  ]
+}
