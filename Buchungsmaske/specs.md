@@ -105,17 +105,20 @@ optische Aspekte:
 - weißer Hintergrund
 - blaue Linie/Rahmen etwa 0.5cm von Rand entfernt
 - Ausfüllbare Felder in hellblau hinterlegt
+- Dropdown fenster in hellblau hinterlegt
 - Fixierte Felder (nach "Zur Kontrollle freigeben"), werden hellgrau hinterlegt
-- Knöpfe blau (selbe farbe wie rahmen)
-
-Layout: 
-von oben nach unten in Reihen:
-- Feld Belegnummer/Vorgangsnummer, Knopf "Offene Vorgänge anzeigen" und "Neuer Geschäftsvorgang"
-- Start-Hauptkonto, Start-systen, Ziel-Hauptkonto, Ziel-system
-- Unterkonto                Unterkonto
-- Betrag, Wertstellung
-- Leistungsart, Verwendungszweck
-- Knöpfe "Beleg weiter bearbeiten", "Folgeschritt buchen", "Zur Kontrolle freigeben" und "Abbruch"
+- alle Knöpfe blau (selbe farbe wie rahmen)
+- Die Beschreibung zu jedem Feld, steht immer über dem Feld
+- Ein Knopf ist so hoch wie ein Feld inklusive Beschreibung
 - lange Texte in Knöpfen (z.B. "Weiteren Buchungsschritt buchen") auf mehrere Zeilen verteilen
 
+Layout: 
+Die Oberfläche hat ein Layout von 4 gedachten Spalten. Das gedachte Grid wird mit Koordinaten beschrieben. Von (1,1) links oben bis (6,4) rechts unten. Alle nicht belegten Positionen sind leer
+Von oben nach unten sind die Reihen folgendermaßen:
+- Feld Belegnummer/Vorgangsnummer (1,1) , Knopf "Offene Vorgänge anzeigen" (1,3) und "Neuer Geschäftsvorgang" (1,4)
+- Start-Hauptkonto (2,1), Start-systen (2,2), Ziel-Hauptkonto(2,3), Ziel-system (2,4)
+- Unterkonto (3,1), Unterkonto (3,3)
+- Betrag (4,1), Wertstellung (4,2)
+- Leistungsart (5,1), Verwendungszweck (5,2)
+- Knöpfe "Beleg weiter bearbeiten" (6,1), "Folgeschritt buchen" (6,2), "Zur Kontrolle freigeben" (6,3) und "Abbruch" (6,4)
 
