@@ -4,6 +4,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 
 class BookingPrototypeApp:
@@ -21,6 +22,7 @@ class BookingPrototypeApp:
         self.transactions = []
         self.current_state = "initial"
         self.current_record = {}
+        self.history_entries = []
 
         self.load_transactions()
         self.build_ui()
@@ -60,6 +62,7 @@ class BookingPrototypeApp:
         self.content.grid(row=1, column=0, sticky="nsew")
         self.content.columnconfigure(0, weight=1)
         self.content.rowconfigure(0, weight=1)
+        self.content.rowconfigure(1, weight=0)
 
     def load_transactions(self):
         if self.json_path.exists():
@@ -95,6 +98,8 @@ class BookingPrototypeApp:
         self.current_state = "initial"
         self.clear_content()
         self.current_record = {}
+        self.pending_steps = []
+        self.history_entries = []
 
         card = tk.LabelFrame(
             self.content,
@@ -117,7 +122,7 @@ class BookingPrototypeApp:
 
         self.initial_beleg_var = tk.StringVar(value="")
         self._place_field(card, 1, 1, "Belegnummer/Vorgangsnummer", self._make_entry(parent=card, textvariable=self.initial_beleg_var, width=24))
-        self._place_field(card, 1, 3, "", self._make_button(parent=card, text="Offene Vorgänge anzeigen", command=self.show_open_transactions, accent="secondary"))
+        self._place_field(card, 1, 3, "", self._make_button(parent=card, text="Beleg bearbeiten", command=self.start_edit_existing_beleg, accent="secondary"))
         self._place_field(card, 1, 4, "", self._make_button(parent=card, text="Neuer Geschäftsvorgang", command=self.start_new_transaction, accent="primary"))
 
         tk.Label(card, text="Hinweis: Ein neuer Vorgang erzeugt automatisch eine eindeutige Belegnummer.", bg="#ffffff", fg="#64748b").grid(row=2, column=0, columnspan=4, sticky="w", pady=(14, 0))
@@ -125,6 +130,7 @@ class BookingPrototypeApp:
 
     def start_new_transaction(self):
         self.current_state = "editing"
+        self.history_entries = []
         self.clear_content()
         self.current_record = {
             "belegnummer": self.generate_belegnummer(),
@@ -141,6 +147,45 @@ class BookingPrototypeApp:
         }
         self.build_form()
         self.status_var.set("Neuer Geschäftsvorgang gestartet")
+
+    def start_edit_existing_beleg(self):
+        belegnummer = self.initial_beleg_var.get().strip()
+        if not belegnummer:
+            self.status_var.set("Bitte geben Sie eine Belegnummer ein")
+            messagebox.showwarning("Fehler", "Bitte geben Sie eine Belegnummer ein.")
+            return
+
+        matching = [t for t in self.transactions if str(t.get("belegnummer", "")).strip() == belegnummer]
+        if not matching:
+            self.status_var.set("Belegnummer nicht gefunden")
+            messagebox.showwarning("Nicht gefunden", "Die Belegnummer ist nicht vorhanden.")
+            self.show_initial_state()
+            return
+
+        self.current_state = "editing"
+        self.pending_steps = []
+        existing_records = self.get_beleg_records(belegnummer)
+        self.history_entries = self.build_history_entries(existing_records, self.pending_steps)
+        first_record = sorted(existing_records, key=lambda r: self.parse_date(r.get("wertstellung", "")))[0]
+        self.clear_content()
+        primary_account = first_record.get("ziel_hauptkonto") or first_record.get("start_hauptkonto")
+        primary_subaccount = first_record.get("ziel_unterkonto") or first_record.get("start_unterkonto")
+        primary_system = first_record.get("ziel_system") or first_record.get("start_system")
+        self.current_record = {
+            "belegnummer": belegnummer,
+            "start_hauptkonto": primary_account,
+            "start_system": primary_system,
+            "start_unterkonto": primary_subaccount,
+            "ziel_hauptkonto": "",
+            "ziel_system": "",
+            "ziel_unterkonto": "",
+            "wertstellung": datetime.now().strftime("%d.%m.%Y"),
+            "betrag": "",
+            "leistungsart": "",
+            "verwendungszweck": "",
+        }
+        self.build_form()
+        self.status_var.set(f"Beleg {belegnummer} bearbeiten")
 
     def build_form(self):
         card = tk.LabelFrame(
@@ -195,10 +240,13 @@ class BookingPrototypeApp:
         self.purpose_var = tk.StringVar(value=self.current_record["verwendungszweck"])
         self._place_field(card, 5, 2, "Verwendungszweck", self._make_entry(parent=card, textvariable=self.purpose_var))
 
-        self._place_button(card, 6, 1, "Beleg weiter bearbeiten", self.return_to_editing, accent="secondary")
+        self._place_button(card, 6, 1, "Beleg weiter bearbeiten", self.continue_beleg_editing, accent="secondary")
         self._place_button(card, 6, 2, "Folgeschritt buchen", self.next_step, accent="secondary")
         self._place_button(card, 6, 3, "Zur Kontrolle freigeben", self.show_summary, accent="primary")
         self._place_button(card, 6, 4, "Abbruch", self.abort_transaction, accent="danger")
+
+        if self.history_entries:
+            self.build_history_view()
 
     def return_to_editing(self):
         self.current_state = "editing"
@@ -207,11 +255,31 @@ class BookingPrototypeApp:
             self.current_record.update(self.collect_record_from_form())
         self.build_form()
 
+    def continue_beleg_editing(self):
+        if not self.validate_required_fields():
+            self.status_var.set("Nicht alle Pflichtfelder sind ausgefüllt")
+            return
+        self.current_record.update(self.collect_record_from_form())
+        self.pending_steps.append(dict(self.current_record))
+        self.history_entries = self.build_history_entries(self.get_beleg_records(self.current_record["belegnummer"]), self.pending_steps)
+        self.current_record["ziel_hauptkonto"] = ""
+        self.current_record["ziel_unterkonto"] = ""
+        self.current_record["ziel_system"] = ""
+        self.current_record["betrag"] = ""
+        self.current_record["wertstellung"] = datetime.now().strftime("%d.%m.%Y")
+        self.current_record["leistungsart"] = ""
+        self.current_record["verwendungszweck"] = ""
+        self.current_state = "editing"
+        self.build_form()
+        self.status_var.set("Beleg weiter bearbeiten: Startwerte beibehalten")
+
     def next_step(self):
         if not self.validate_required_fields():
             self.status_var.set("Nicht alle Pflichtfelder sind ausgefüllt")
             return
         self.current_record.update(self.collect_record_from_form())
+        self.pending_steps.append(dict(self.current_record))
+        self.history_entries = self.build_history_entries(self.get_beleg_records(self.current_record["belegnummer"]), self.pending_steps)
         self.current_record["belegnummer"] = self.current_record.get("belegnummer", "")
         self.current_record["start_hauptkonto"] = self.current_record.get("ziel_hauptkonto", "")
         self.current_record["start_system"] = self.current_record.get("ziel_system", "")
@@ -232,6 +300,8 @@ class BookingPrototypeApp:
             self.status_var.set("Nicht alle Pflichtfelder sind ausgefüllt")
             return
         self.current_record.update(self.collect_record_from_form())
+        history_records = self.get_beleg_records(self.current_record["belegnummer"])
+        self.history_entries = self.build_history_entries(history_records, self.pending_steps + [dict(self.current_record)])
         self.current_state = "summary"
         self.clear_content()
 
@@ -274,7 +344,13 @@ class BookingPrototypeApp:
 
     def release_transaction(self):
         self.current_record.update(self.collect_record_from_form())
-        self.transactions.append(self.current_record)
+        steps_to_save = list(self.pending_steps)
+        if self.validate_required_fields():
+            steps_to_save.append(dict(self.current_record))
+        for step in steps_to_save:
+            self.transactions.append(step)
+        self.pending_steps = []
+        self.history_entries = []
         self.save_transactions()
         self.status_var.set("Buchung freigegeben")
         self.show_initial_state()
@@ -327,6 +403,127 @@ class BookingPrototypeApp:
     def clear_content(self):
         for child in self.content.winfo_children():
             child.destroy()
+
+    def get_beleg_records(self, belegnummer):
+        return [t for t in self.transactions if str(t.get("belegnummer", "")).strip() == str(belegnummer).strip()]
+
+    def build_history_view(self):
+        history_card = tk.LabelFrame(
+            self.content,
+            text="Historie",
+            padx=12,
+            pady=12,
+            bg="#ffffff",
+            fg="#1f4ed8",
+            font=("Segoe UI", 11, "bold"),
+            borderwidth=2,
+            relief="solid",
+            highlightbackground="#1f4ed8",
+            highlightcolor="#1f4ed8",
+        )
+        history_card.grid(row=1, column=0, sticky="nsew", pady=(16, 0))
+        history_card.columnconfigure(tuple(range(10)), weight=1)
+
+        headers = [
+            "Betrag",
+            "Währung",
+            "Leistungsart - Verwendungszweck",
+            "Konto",
+            "Wertstellungsdatum",
+        ]
+        for index, header_text in enumerate(headers):
+            label = tk.Label(history_card, text=header_text, bg="#ffffff", fg="#0f172a", font=("Segoe UI", 10, "bold"))
+            label.grid(row=0, column=index * 2, sticky="w", padx=(0, 4), pady=(0, 6))
+            button = tk.Button(history_card, text="i", command=lambda: None, bg="#e2e8f0", fg="#0f172a", relief="flat", bd=0, width=2, font=("Segoe UI", 9, "bold"))
+            button.grid(row=0, column=index * 2 + 1, sticky="e", padx=(0, 10), pady=(0, 6))
+
+        current_row = 1
+        for index, entry in enumerate(self.history_entries):
+            tk.Label(history_card, text=entry["amount"], bg="#ffffff", fg="#0f172a").grid(row=current_row, column=0, sticky="w", padx=(0, 4), pady=(2, 2))
+            tk.Label(history_card, text=entry["currency"], bg="#ffffff", fg="#0f172a").grid(row=current_row, column=2, sticky="w", padx=(0, 4), pady=(2, 2))
+            tk.Label(history_card, text=entry["description"], bg="#ffffff", fg="#0f172a").grid(row=current_row, column=4, sticky="w", padx=(0, 4), pady=(2, 2))
+            tk.Label(history_card, text=entry["account"], bg="#ffffff", fg="#0f172a").grid(row=current_row, column=6, sticky="w", padx=(0, 4), pady=(2, 2))
+            tk.Label(history_card, text=entry["wertstellung"], bg="#ffffff", fg="#0f172a").grid(row=current_row, column=8, sticky="w", padx=(0, 4), pady=(2, 2))
+            if index == 0:
+                separator = tk.Frame(history_card, bg="#cbd5e1", height=1)
+                separator.grid(row=current_row + 1, column=0, columnspan=10, sticky="ew", pady=(4, 6))
+                current_row += 2
+            else:
+                current_row += 1
+
+    def build_history_entries(self, records, pending_records=None):
+        all_records = list(records) + list(pending_records or [])
+        sorted_records = sorted(all_records, key=lambda r: self.parse_date(r.get("wertstellung", "")))
+        entries = []
+        # determine primary account (Ursprungszielkonto) from first record
+        primary_account = None
+        if sorted_records:
+            first_rec = sorted_records[0]
+            primary_account = first_rec.get("ziel_hauptkonto") or first_rec.get("start_hauptkonto")
+
+        previous_target = None
+        for index, record in enumerate(sorted_records):
+            perf = str(record.get("leistungsart", "") or "").strip()
+            purpose = str(record.get("verwendungszweck", "") or "").strip()
+            if perf and purpose:
+                description = f"{perf} - {purpose}"
+            elif perf:
+                description = perf
+            elif purpose:
+                description = f"- {purpose}"
+            else:
+                description = ""
+
+            amount_text = str(record.get("betrag", "") or "")
+            # show arrow only when this step starts from the previous step's target
+            # BUT never show arrow for bookings whose start account is the primary (Ursprungszielkonto)
+            if index > 0 and previous_target and str(record.get("start_hauptkonto", "")).strip() == str(previous_target).strip():
+                if not primary_account or str(record.get("start_hauptkonto", "")).strip() != str(primary_account).strip():
+                    amount_text = f"->{amount_text}"
+
+            entries.append({
+                "amount": amount_text,
+                "currency": "EUR",
+                "description": description,
+                "account": record.get("ziel_hauptkonto", ""),
+                "wertstellung": record.get("wertstellung", ""),
+                "source_record": record,
+            })
+            previous_target = record.get("ziel_hauptkonto", "")
+
+        if sorted_records:
+            first_record = sorted_records[0]
+            primary_account = first_record.get("ziel_hauptkonto") or first_record.get("start_hauptkonto")
+            initial_amount = self.parse_amount(first_record.get("betrag", ""))
+            outgoing_amount = Decimal("0")
+            for record in sorted_records[1:]:
+                if str(record.get("start_hauptkonto", "")).strip() == str(primary_account).strip():
+                    outgoing_amount += self.parse_amount(record.get("betrag", ""))
+            remaining = initial_amount - outgoing_amount
+            entries.append({
+                "amount": f"{remaining:.2f}",
+                "currency": "EUR",
+                "description": "ungeklärt/offen",
+                "account": primary_account,
+                "wertstellung": "--------",
+                "source_record": first_record,
+            })
+        return entries
+
+    def parse_date(self, value):
+        try:
+            return datetime.strptime(str(value), "%d.%m.%Y")
+        except (ValueError, TypeError):
+            return datetime(1900, 1, 1)
+
+    def parse_amount(self, value):
+        try:
+            text = str(value).replace(",", ".").strip()
+            if not text:
+                return Decimal("0")
+            return Decimal(text)
+        except (InvalidOperation, ValueError, TypeError):
+            return Decimal("0")
 
     def _place_field(self, parent, row, column, label_text, widget, var=None):
         label = tk.Label(parent, text=label_text, bg="#ffffff", fg="#0f172a")
