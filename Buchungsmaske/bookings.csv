@@ -2,3 +2,4 @@ belegnummer,start_hauptkonto,ziel_hauptkonto,start_unterkonto,ziel_unterkonto,st
 0001,1,2,,,DaBu,DaBu,29.07.2026,1000,1,
 0002,3,4,1,,DaBu,KK,29.07.2026,10,6,
 0003,1,2,,,ORAG,KK,04.08.2026,1000,3,test
+0004,525312,12312321,,,ORAG,ORAG,11.10.2026,111,6,

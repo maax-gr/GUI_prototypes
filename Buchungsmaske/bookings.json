@@ -37,5 +37,18 @@
     "betrag": "1000",
     "leistungsart": "3",
     "verwendungszweck": "test"
+  },
+  {
+    "belegnummer": "0004",
+    "start_hauptkonto": "525312",
+    "ziel_hauptkonto": "12312321",
+    "start_unterkonto": "",
+    "ziel_unterkonto": "",
+    "start_system": "ORAG",
+    "ziel_system": "ORAG",
+    "wertstellung": "11.10.2026",
+    "betrag": "111",
+    "leistungsart": "6",
+    "verwendungszweck": ""
   }
 ]
