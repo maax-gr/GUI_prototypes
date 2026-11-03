@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": true,
+        "albums": {
+          "$albumId": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['title', 'artist', 'coverUrl', 'zone', 'order', 'addedAt']) && newData.child('title').isString() && newData.child('artist').isString() && newData.child('coverUrl').isString() && (newData.child('zone').val() == 'top20' || newData.child('zone').val() == '20to40' || newData.child('zone').val() == '40to60' || newData.child('zone').val() == 'unsorted') && newData.child('order').isNumber() && newData.child('addedAt').isNumber() && (!newData.hasChild('year') || newData.child('year').isNumber())"
+          }
+        }
+      }
+    }
+  }
+}
