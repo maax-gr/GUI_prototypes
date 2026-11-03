@@ -25,4 +25,8 @@ For local development, serve this folder from a static HTTP server. The Firebase
 1. Open the private room link. All players must use the exact same room code.
 2. Search by album title, artist, or both, then choose the right album from the results to add it to **Unsorted**.
 3. Drag cards between zones, or between cards within a zone, to order them. Changes sync automatically.
-4. Hover a card and select **×** to remove it for everyone; confirm the prompt.
+4. Hover a card (or look at its corners on a phone). **★** toggles your vote, **♫** searches the album on Spotify (Ctrl/Cmd+click on a card also works on desktop), and **×** removes it for everyone after confirmation.
+
+## Players and votes
+
+The first time you open the board, enter your name and pick a color (red, blue or yellow). The choice is stored in your browser; use "Playing as…" in the header to change it. Each player should use a different color. Adding an album counts as your vote, and ★ toggles it. Votes show as colored borders around the cover, always stacked red, blue, yellow.

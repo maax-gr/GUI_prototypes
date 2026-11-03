@@ -30,14 +30,14 @@ The page talks directly to Firebase and iTunes from the browser. There is no bac
 ### 4.1 Layout
 
 - A search field at the top with a results dropdown or panel.
-- A large canvas below, split into four zones (columns or labeled areas that scale to the window):
+- A large canvas below, split into four full-width rows stacked top to bottom (cards wrap inside each row):
   1. **Top 20**
   2. **20–40**
   3. **40–60**
   4. **Unsorted** (new albums land here)
 - Each zone has a visible label and a live count of albums in it.
 - Zones are not capped. A zone can hold more or fewer than 20 albums, and the labels are only names.
-- Card sizes step down when a zone has more than 12 or more than 28 albums; they do not resize for every addition.
+- Card sizes step down when a zone has more than 20 or more than 40 albums; they do not resize for every addition.
 
 ### 4.2 Album card
 
@@ -56,14 +56,23 @@ The page talks directly to Firebase and iTunes from the browser. There is no bac
 ### 4.4 Moving albums
 
 - Drag and drop a card to another zone or to a different position in the same zone.
-- Use the native HTML5 drag-and-drop API or pointer events. Touch support is nice to have, not required.
+- Use the native HTML5 drag-and-drop API for mouse. On touch screens (Android and iOS), a long press (about 0.3 s) picks a card up, then it is dragged with a floating copy; a normal swipe still scrolls the page, and the page auto-scrolls near the top and bottom edges while dragging.
 - On drop, the card's zone and position are written to the database.
-- Remove an album: a small "×" button on the card that appears on hover, with a confirm step.
+- Remove an album: a small "×" button on the card that appears on hover (always visible on touch screens), with a confirm step.
 
 ### 4.5 Live sync
 
 - Every open browser subscribes to the room's data. When anyone adds, moves or removes an album, all other screens update within about a second without a reload.
 - Conflict rule: last write wins per album. Concurrent moves of different albums must not interfere.
+
+### 4.6 Players and votes
+
+- On first visit each device asks for a **name** and one of three fixed **colors** (red, blue, yellow). The choice is saved in the browser (`localStorage`) and can be changed via the "Playing as…" link in the header. There are no accounts; players must pick different colors.
+- Adding an album counts as the adder's first vote.
+- Each card has a ★ button that toggles the current player's vote on and off (undo).
+- Votes are shown as colored borders around the cover, always stacked in the fixed order red (inner), blue, yellow (outer), regardless of who voted first. The ★ tooltip lists the voters' names.
+- Each card also has a ♫ button that opens the Spotify search; this replaces Ctrl/Cmd+click on touch screens (Ctrl/Cmd+click still works on desktop).
+- Buttons (★, ×, ♫) appear on hover on desktop and are always visible on touch screens.
 
 ## 5. Data
 
@@ -88,7 +97,8 @@ The page talks directly to Firebase and iTunes from the browser. There is no bac
           "year": 1997,
           "zone": "top20",
           "order": 1.5,
-          "addedAt": 1730000000000
+          "addedAt": 1730000000000,
+          "votes": { "red": "Anna", "blue": "Ben" }
         }
       }
     }
@@ -130,11 +140,9 @@ The agent should deliver the files at the paths in the project-files row: `index
 
 ## 9. Later features (out of scope for the prototype)
 
-- **Spotify link:** Ctrl+click (Cmd+click on Mac) on a card opens the album on Spotify in a new tab. Simplest first version: open `https://open.spotify.com/search/<artist> <title>`. A precise link needs the Spotify Web API with a token, so it is deferred.
-- Showing who added or moved an album.
-- Export and import of the board as JSON (backup).
+- **Spotify link (precise version):** the prototype opens a Spotify search for the artist and title on Ctrl+click (Cmd+click on Mac). A direct album link needs the Spotify Web API with a token, so it is deferred.
 - Rank numbers on cards in Top 20.
-- Touch and mobile polish.
+- Touch and mobile polish beyond long-press drag (for example, haptics and larger tap targets).
 - Real logins instead of a shared room code.
 
 ## 10. Open points for the owner

@@ -56,23 +56,30 @@
 
     .notice { min-height: 1.5em; margin: -12px 0 12px; color: #c4b5fd; font-size: .9rem; }
     .notice.error { color: #fca5a5; }
-    .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
-    .zone { min-height: 330px; padding: 14px; border: 1px solid #374151; border-radius: 14px; background: #18212f; transition: border-color .15s, background .15s; }
+    .board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .zone { min-height: 190px; padding: 14px; border: 1px solid #374151; border-radius: 14px; background: #18212f; transition: border-color .15s, background .15s; }
     .zone.drag-over { border-color: #a78bfa; background: #27213c; }
     .zone-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin: 0 0 14px; }
     .zone-heading h2 { margin: 0; font-size: 1rem; }
     .count { color: #9ca3af; font-size: .82rem; }
-    .cards { display: grid; gap: 12px 10px; min-height: 250px; align-content: start; }
+    .cards { --ring: 3px; display: grid; gap: 12px 10px; min-height: 130px; align-content: start; }
+    .cards.size-medium, .cards.size-compact { --ring: 2px; }
     .cards.size-large { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
     .cards.size-medium { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
     .cards.size-compact { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px 6px; }
     .album-card {
-      position: relative; max-width: 112px; min-width: 0; padding: 5px; border: 1px solid transparent; border-radius: 9px;
+      position: relative; max-width: 112px; min-width: 0; padding: calc(var(--ring) * 3 + 2px); border: 1px solid transparent; border-radius: 9px;
       cursor: grab; transition: border-color .2s, background .2s, transform .2s;
     }
     .size-medium .album-card { max-width: 84px; }
     .size-compact .album-card { max-width: 66px; }
+    .album-card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .album-card img { -webkit-user-drag: none; }
     .album-card:active { cursor: grabbing; }
+    .touch-ghost { position: fixed; z-index: 100; pointer-events: none; opacity: .85; transform: scale(1.08); box-shadow: 0 12px 30px #000a; }
+    @media (hover: none) {
+      .card-btn { opacity: 1; pointer-events: auto; }
+    }
     .album-card.dragging { opacity: .35; }
     .album-card.highlight { border-color: #fbbf24; background: #78350f66; transform: scale(1.03); }
     .cover { display: block; width: 100%; aspect-ratio: 1; border-radius: 6px; object-fit: cover; background: #374151; }
@@ -81,13 +88,33 @@
     }
     .album-title { margin-top: 7px; font-size: .8rem; font-weight: 650; }
     .album-artist { margin-top: 3px; color: #9ca3af; font-size: .75rem; }
-    .remove {
-      position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 27px; height: 27px;
-      padding: 0; border: 1px solid #ffffff44; border-radius: 50%; background: #111827dd; font-size: 1.2rem;
+    .cover-wrap { position: relative; border-radius: 6px; }
+    .cover-wrap .cover { border-radius: 6px; }
+    .card-btn {
+      position: absolute; display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+      border: 1px solid #ffffff55; border-radius: 50%; background: #111827dd; font-size: .95rem;
       line-height: 1; opacity: 0; pointer-events: none; transition: opacity .15s;
     }
-    .album-card:hover .remove, .album-card:focus-within .remove { opacity: 1; pointer-events: auto; }
+    .size-compact .card-btn { width: 19px; height: 19px; font-size: .75rem; }
+    .album-card:hover .card-btn, .album-card:focus-within .card-btn { opacity: 1; pointer-events: auto; }
+    .remove { top: 4px; right: 4px; font-size: 1.15rem; }
+    .vote { top: 4px; left: 4px; }
+    .vote.mine { color: #111827; border-color: #fff; }
+    .spotify { right: 4px; bottom: 4px; }
     .remove:hover { background: #b91c1c; }
+    .spotify:hover { background: #15803d; }
+    .link-button { padding: 0; background: none; color: #c4b5fd; text-decoration: underline; font-size: inherit; }
+    .link-button:hover { background: none; color: #ddd6fe; }
+    .modal { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: #000b; }
+    .modal-card { width: min(420px, 100%); padding: 24px; border: 1px solid #374151; border-radius: 16px; background: #18212f; }
+    .modal-card h2 { margin: 0 0 8px; }
+    .modal-card p { margin: 0 0 16px; color: #9ca3af; font-size: .9rem; line-height: 1.45; }
+    .modal-card input { width: 100%; padding: 12px 14px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; color: #f9fafb; }
+    .color-choices { display: flex; gap: 10px; margin: 16px 0; }
+    .color-choice { flex: 1; padding: 11px 6px; border: 3px solid transparent; color: #111827; font-weight: 700; }
+    .color-choice.selected { border-color: #fff; box-shadow: 0 0 0 2px #111827 inset; }
+    .color-choice:hover { filter: brightness(1.1); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
     .empty { color: #6b7280; font-size: .85rem; }
     .status { margin-top: 15px; color: #9ca3af; font-size: .84rem; }
     .status.error { color: #fca5a5; }
@@ -99,18 +126,10 @@
     .room-form { display: flex; gap: 9px; margin-top: 20px; }
     .room-error { min-height: 1.3em; color: #fca5a5 !important; font-size: .88rem; }
 
-    @media (max-width: 900px) {
-      .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .zone { min-height: 270px; }
-      .cards { min-height: 190px; }
-    }
     @media (max-width: 520px) {
       .page { padding-top: 20px; }
       header { display: block; }
       .room-label { max-width: 100%; text-align: left; }
-      .board { grid-template-columns: 1fr; }
-      .zone { min-height: 220px; }
-      .cards { min-height: 140px; }
       .search-row { gap: 6px; }
       .search-row button { padding-inline: 11px; }
     }
@@ -131,9 +150,11 @@
     <header>
       <div>
         <h1>Album Ranking</h1>
-        <p class="intro">Search, add, then drag albums to rank them together.</p>
+        <p class="intro">Search, add, then drag albums to rank them together. Tap ★ to vote and ♫ to search on Spotify.</p>
       </div>
-      <p class="room-label">Room <span id="room-name"></span></p>
+      <p class="room-label">Room <span id="room-name"></span><br>
+        <button id="player-button" type="button" class="link-button">Choose your name and color</button>
+      </p>
     </header>
 
     <section class="search-panel" aria-label="Search albums">
@@ -147,6 +168,19 @@
     <section id="board" class="board" aria-label="Album ranking board"></section>
     <p id="connection-status" class="status" role="status">Connecting to the shared board…</p>
   </main>
+
+  <div id="player-gate" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="player-title">
+    <form id="player-form" class="modal-card">
+      <h2 id="player-title">Who's playing?</h2>
+      <p>Pick your name and your color. Your color is your vote border on albums, so each player should choose a different one.</p>
+      <input id="player-name" maxlength="20" autocomplete="off" placeholder="Your name" aria-label="Your name" required>
+      <div id="color-choices" class="color-choices"></div>
+      <div class="modal-actions">
+        <button id="player-cancel" type="button" class="link-button">Cancel</button>
+        <button type="submit">Save</button>
+      </div>
+    </form>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -190,6 +224,35 @@
     const notice = document.querySelector("#notice");
     const status = document.querySelector("#connection-status");
     const roomName = document.querySelector("#room-name");
+    const playerGate = document.querySelector("#player-gate");
+    const playerForm = document.querySelector("#player-form");
+    const playerNameInput = document.querySelector("#player-name");
+    const colorChoices = document.querySelector("#color-choices");
+    const playerButton = document.querySelector("#player-button");
+    const playerCancel = document.querySelector("#player-cancel");
+
+    // Fixed order: this is also the order of the vote borders, innermost first.
+    const playerColors = [
+      { id: "red", label: "Red", hex: "#ef4444" },
+      { id: "blue", label: "Blue", hex: "#3b82f6" },
+      { id: "yellow", label: "Yellow", hex: "#eab308" }
+    ];
+    const playerStorageKey = "albumRankingPlayer";
+
+    function loadPlayer() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(playerStorageKey));
+        if (saved && typeof saved.name === "string" && saved.name && playerColors.some(color => color.id === saved.color)) {
+          return saved;
+        }
+      } catch (error) {
+        // Ignore unreadable saved data and ask again.
+      }
+      return null;
+    }
+
+    let player = loadPlayer();
+    let selectedColor = player?.color || "";
 
     let roomCode = "";
     let albums = {};
@@ -228,6 +291,8 @@
       roomName.textContent = code;
       roomName.title = code;
       subscribeToRoom();
+      updatePlayerButton();
+      if (!player) showPlayerGate();
     }
 
     function subscribeToRoom() {
@@ -239,6 +304,70 @@
       }, error => {
         setStatus(`Could not read this room: ${error.message}`, true);
       });
+    }
+
+    function updatePlayerButton() {
+      playerButton.textContent = player
+        ? `Playing as ${player.name} (${playerColors.find(color => color.id === player.color).label}) · change`
+        : "Choose your name and color";
+    }
+
+    function renderColorChoices() {
+      colorChoices.replaceChildren();
+      playerColors.forEach(color => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `color-choice${selectedColor === color.id ? " selected" : ""}`;
+        button.style.background = color.hex;
+        button.textContent = color.label;
+        button.setAttribute("aria-pressed", String(selectedColor === color.id));
+        button.addEventListener("click", () => {
+          selectedColor = color.id;
+          renderColorChoices();
+        });
+        colorChoices.append(button);
+      });
+    }
+
+    function showPlayerGate() {
+      playerNameInput.value = player?.name || "";
+      selectedColor = player?.color || "";
+      playerCancel.classList.toggle("hidden", !player);
+      renderColorChoices();
+      playerGate.classList.remove("hidden");
+      playerNameInput.focus();
+    }
+
+    function votesOf(album) {
+      return album.votes && typeof album.votes === "object" ? album.votes : {};
+    }
+
+    function ringShadow(album) {
+      const votes = votesOf(album);
+      const rings = playerColors
+        .filter(color => votes[color.id])
+        .map((color, index) => `0 0 0 calc(var(--ring) * ${index + 1}) ${color.hex}`);
+      return rings.join(", ");
+    }
+
+    async function toggleVote(id) {
+      if (!player) {
+        showPlayerGate();
+        return;
+      }
+      const hasVoted = Boolean(votesOf(albums[id] || {})[player.color]);
+      try {
+        await update(ref(database, `rooms/${roomCode}/albums/${id}/votes`), {
+          [player.color]: hasVoted ? null : player.name
+        });
+      } catch (error) {
+        showNotice(`Could not update your vote: ${error.message}`, true);
+      }
+    }
+
+    function openSpotify(album) {
+      const query = encodeURIComponent(`${album.artist} ${album.title}`);
+      window.open(`https://open.spotify.com/search/${query}`, "_blank", "noopener");
     }
 
     function sortedAlbums(zoneId) {
@@ -264,7 +393,7 @@
         heading.append(title, count);
         const cards = document.createElement("div");
         cards.className = "cards";
-        cards.classList.add(entries.length > 28 ? "size-compact" : entries.length > 12 ? "size-medium" : "size-large");
+        cards.classList.add(entries.length > 40 ? "size-compact" : entries.length > 20 ? "size-medium" : "size-large");
         cards.dataset.zone = zone.id;
         if (!entries.length) {
           const empty = document.createElement("span");
@@ -293,16 +422,116 @@
       });
     }
 
+    // Touch screens: long-press a card to pick it up, then drag; a normal swipe still scrolls.
+    function enableTouchDrag(card, id) {
+      let timer = 0;
+      let scrollTimer = 0;
+      let active = false;
+      let startX = 0;
+      let startY = 0;
+      let lastX = 0;
+      let lastY = 0;
+      let ghost = null;
+
+      function cleanup() {
+        window.clearTimeout(timer);
+        window.clearInterval(scrollTimer);
+        ghost?.remove();
+        ghost = null;
+        active = false;
+        draggedId = "";
+        card.classList.remove("dragging");
+        document.querySelectorAll(".zone.drag-over").forEach(element => element.classList.remove("drag-over"));
+      }
+
+      function highlightZone() {
+        document.querySelectorAll(".zone.drag-over").forEach(element => element.classList.remove("drag-over"));
+        document.elementFromPoint(lastX, lastY)?.closest(".zone")?.classList.add("drag-over");
+      }
+
+      function activate() {
+        active = true;
+        draggedId = id;
+        card.classList.add("dragging");
+        navigator.vibrate?.(20);
+        const rect = card.getBoundingClientRect();
+        ghost = card.cloneNode(true);
+        ghost.classList.remove("dragging");
+        ghost.classList.add("touch-ghost");
+        ghost.style.width = `${rect.width}px`;
+        document.body.append(ghost);
+        moveGhost();
+        highlightZone();
+        scrollTimer = window.setInterval(() => {
+          if (lastY < 90) window.scrollBy(0, -14);
+          else if (lastY > window.innerHeight - 90) window.scrollBy(0, 14);
+        }, 16);
+      }
+
+      function moveGhost() {
+        const rect = ghost.getBoundingClientRect();
+        ghost.style.left = `${lastX - rect.width / 2}px`;
+        ghost.style.top = `${lastY - rect.height / 2}px`;
+      }
+
+      card.addEventListener("touchstart", event => {
+        if (event.touches.length !== 1 || event.target.closest(".card-btn")) return;
+        const touch = event.touches[0];
+        startX = lastX = touch.clientX;
+        startY = lastY = touch.clientY;
+        timer = window.setTimeout(activate, 320);
+      }, { passive: true });
+
+      card.addEventListener("touchmove", event => {
+        const touch = event.touches[0];
+        lastX = touch.clientX;
+        lastY = touch.clientY;
+        if (!active) {
+          if (Math.hypot(lastX - startX, lastY - startY) > 10) window.clearTimeout(timer);
+          return;
+        }
+        event.preventDefault();
+        moveGhost();
+        highlightZone();
+      }, { passive: false });
+
+      card.addEventListener("touchend", event => {
+        window.clearTimeout(timer);
+        if (!active) return;
+        event.preventDefault();
+        const target = document.elementFromPoint(lastX, lastY);
+        const zoneElement = target?.closest(".zone");
+        const targetCard = target?.closest(".album-card");
+        const draggedAlbumId = id;
+        cleanup();
+        if (!zoneElement) return;
+        const targetId = targetCard?.dataset.albumId || "";
+        const after = targetCard
+          ? lastX > targetCard.getBoundingClientRect().left + targetCard.getBoundingClientRect().width / 2
+          : true;
+        moveAlbum(draggedAlbumId, zoneElement.dataset.zone, targetId, after);
+      });
+
+      card.addEventListener("touchcancel", cleanup);
+      card.addEventListener("contextmenu", event => event.preventDefault());
+    }
+
     function createCard(id, album, highlighted) {
       const card = document.createElement("article");
       card.className = `album-card${highlighted ? " highlight" : ""}`;
       card.dataset.albumId = id;
-      card.draggable = true;
+      const touchOnly = window.matchMedia("(pointer: coarse)").matches;
+      card.draggable = !touchOnly;
+      if (touchOnly) enableTouchDrag(card, id);
       card.addEventListener("dragstart", event => {
         draggedId = id;
         card.classList.add("dragging");
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", id);
+      });
+      card.addEventListener("click", event => {
+        if (!(event.ctrlKey || event.metaKey) || event.target.closest(".card-btn")) return;
+        openSpotify(album);
       });
       card.addEventListener("dragend", () => {
         draggedId = "";
@@ -310,6 +539,9 @@
         document.querySelectorAll(".zone.drag-over").forEach(element => element.classList.remove("drag-over"));
       });
 
+      const wrap = document.createElement("div");
+      wrap.className = "cover-wrap";
+      wrap.style.boxShadow = ringShadow(album);
       const image = document.createElement("img");
       image.className = "cover";
       image.src = album.coverUrl;
@@ -324,9 +556,37 @@
       artist.className = "album-artist";
       artist.textContent = album.artist;
       artist.title = album.artist;
+
+      const votes = votesOf(album);
+      const voterNames = playerColors.filter(color => votes[color.id]).map(color => String(votes[color.id]));
+      const mine = Boolean(player && votes[player.color]);
+      const vote = document.createElement("button");
+      vote.type = "button";
+      vote.className = `card-btn vote${mine ? " mine" : ""}`;
+      vote.textContent = "★";
+      if (mine) vote.style.background = playerColors.find(color => color.id === player.color).hex;
+      vote.title = `${mine ? "Remove your vote" : "Vote for this album"}${voterNames.length ? ` · Voted by ${voterNames.join(", ")}` : ""}`;
+      vote.setAttribute("aria-label", vote.title);
+      vote.setAttribute("aria-pressed", String(mine));
+      vote.addEventListener("click", event => {
+        event.stopPropagation();
+        toggleVote(id);
+      });
+
+      const spotify = document.createElement("button");
+      spotify.type = "button";
+      spotify.className = "card-btn spotify";
+      spotify.textContent = "♫";
+      spotify.title = "Search on Spotify";
+      spotify.setAttribute("aria-label", `Search ${album.title} on Spotify`);
+      spotify.addEventListener("click", event => {
+        event.stopPropagation();
+        openSpotify(album);
+      });
+
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.className = "remove";
+      remove.className = "card-btn remove";
       remove.textContent = "×";
       remove.title = `Remove ${album.title}`;
       remove.setAttribute("aria-label", `Remove ${album.title}`);
@@ -339,7 +599,8 @@
           showNotice(`Could not remove album: ${error.message}`, true);
         }
       });
-      card.append(image, title, artist, remove);
+      wrap.append(image, vote, remove, spotify);
+      card.append(wrap, title, artist);
       return card;
     }
 
@@ -476,6 +737,10 @@
     }
 
     async function addAlbum(item) {
+      if (!player) {
+        showPlayerGate();
+        return;
+      }
       const id = String(item.collectionId);
       const albumRef = ref(database, `rooms/${roomCode}/albums/${id}`);
       const album = {
@@ -484,7 +749,8 @@
         coverUrl: artworkSize(item.artworkUrl100, 300),
         zone: "unsorted",
         order: Math.max(0, ...sortedAlbums("unsorted").map(([, current]) => Number(current.order) || 0)) + 1,
-        addedAt: Date.now()
+        addedAt: Date.now(),
+        votes: { [player.color]: player.name }
       };
       const year = Number(item.releaseDate?.slice(0, 4));
       if (Number.isInteger(year) && year > 0) album.year = year;
@@ -531,6 +797,21 @@
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") results.classList.add("hidden");
     });
+    playerForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = playerNameInput.value.trim().slice(0, 20);
+      if (!name || !selectedColor) {
+        showNotice("Enter a name and pick a color.", true);
+        return;
+      }
+      player = { name, color: selectedColor };
+      localStorage.setItem(playerStorageKey, JSON.stringify(player));
+      playerGate.classList.add("hidden");
+      updatePlayerButton();
+      renderBoard();
+    });
+    playerButton.addEventListener("click", showPlayerGate);
+    playerCancel.addEventListener("click", () => playerGate.classList.add("hidden"));
     roomForm.addEventListener("submit", event => {
       event.preventDefault();
       startRoom(roomInput.value);
