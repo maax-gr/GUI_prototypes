@@ -37,17 +37,18 @@ The page talks directly to Firebase and iTunes from the browser. There is no bac
   4. **Unsorted** (new albums land here)
 - Each zone has a visible label and a live count of albums in it.
 - Zones are not capped. A zone can hold more or fewer than 20 albums, and the labels are only names.
+- Card sizes step down when a zone has more than 12 or more than 28 albums; they do not resize for every addition.
 
 ### 4.2 Album card
 
 - Cover image (square).
 - Directly below the cover: **title** and **artist** as text, truncated with an ellipsis if too long, full text on hover (`title` attribute).
-- Cards are draggable. The card's width is fixed (about 120–150 px) so many cards fit per zone, with wrapping inside the zone.
+- Cards are draggable. Their size is fixed for the current zone count and steps down at the thresholds above; cards wrap inside each zone.
 
 ### 4.3 Search flow
 
 1. User types an artist or album name. The search is debounced (about 400 ms).
-2. The app queries the iTunes Search API and shows up to 10 album results, each with a cover thumbnail, album title, artist and year.
+2. The app queries the iTunes Search API for albums and tracks, merges unique album collections, ranks them against the query, and shows up to 10 results, each with a cover thumbnail, album title, artist and year. Track search helps find albums whose songs match the query better than the album title.
 3. User clicks the intended result.
 4. A new album is added to the **Unsorted** zone and written to the database. The results panel then closes and the search field clears.
 5. If the same album (same `collectionId`) is already on the board, do not add it again. Briefly highlight the existing card and show a short notice.

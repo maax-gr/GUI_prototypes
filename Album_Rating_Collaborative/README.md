@@ -13,9 +13,16 @@ The app also accepts the room code on its join screen and adds it to the URL has
 
 ## How it works
 
-- Album search uses the public iTunes Search API.
+- Album search uses the public iTunes Search API. It searches both albums and tracks, then shows unique album results ranked against the query; the track search helps find an album when its tracks match better than the album title.
 - Firebase Realtime Database stores each album under `rooms/<roomCode>/albums/<collectionId>`.
 - The app is a single `index.html` with inline CSS and JavaScript. It uses Firebase's modular JavaScript SDK from Google's CDN; there is no build step or app server.
 - Album artwork is loaded from iTunes and is not copied into Firebase.
 
 For local development, serve this folder from a static HTTP server. The Firebase ES module imports and browser network requests are not supported when opening `index.html` directly as a `file://` URL. A local static server is only needed for development; GitHub Pages serves the deployed app.
+
+## Using the board
+
+1. Open the private room link. All players must use the exact same room code.
+2. Search by album title, artist, or both, then choose the right album from the results to add it to **Unsorted**.
+3. Drag cards between zones, or between cards within a zone, to order them. Changes sync automatically.
+4. Hover a card and select **×** to remove it for everyone; confirm the prompt.

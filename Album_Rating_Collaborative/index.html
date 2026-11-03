@@ -62,11 +62,16 @@
     .zone-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin: 0 0 14px; }
     .zone-heading h2 { margin: 0; font-size: 1rem; }
     .count { color: #9ca3af; font-size: .82rem; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px 10px; min-height: 250px; align-content: start; }
+    .cards { display: grid; gap: 12px 10px; min-height: 250px; align-content: start; }
+    .cards.size-large { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+    .cards.size-medium { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+    .cards.size-compact { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px 6px; }
     .album-card {
-      position: relative; min-width: 0; padding: 5px; border: 1px solid transparent; border-radius: 9px;
+      position: relative; max-width: 112px; min-width: 0; padding: 5px; border: 1px solid transparent; border-radius: 9px;
       cursor: grab; transition: border-color .2s, background .2s, transform .2s;
     }
+    .size-medium .album-card { max-width: 84px; }
+    .size-compact .album-card { max-width: 66px; }
     .album-card:active { cursor: grabbing; }
     .album-card.dragging { opacity: .35; }
     .album-card.highlight { border-color: #fbbf24; background: #78350f66; transform: scale(1.03); }
@@ -105,7 +110,7 @@
       .room-label { max-width: 100%; text-align: left; }
       .board { grid-template-columns: 1fr; }
       .zone { min-height: 220px; }
-      .cards { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); min-height: 140px; }
+      .cards { min-height: 140px; }
       .search-row { gap: 6px; }
       .search-row button { padding-inline: 11px; }
     }
@@ -133,7 +138,7 @@
 
     <section class="search-panel" aria-label="Search albums">
       <form id="search-form" class="search-row">
-        <input id="search-input" type="search" autocomplete="off" placeholder="Search artist or album…" aria-label="Search artist or album">
+        <input id="search-input" type="search" autocomplete="off" placeholder="Search artist and album (e.g. Pink Floyd Dark Side of the Moon)…" aria-label="Search artist or album">
         <button id="search-button" type="submit">Search</button>
       </form>
       <div id="results" class="results hidden" role="listbox" aria-label="Album search results"></div>
@@ -259,6 +264,7 @@
         heading.append(title, count);
         const cards = document.createElement("div");
         cards.className = "cards";
+        cards.classList.add(entries.length > 28 ? "size-compact" : entries.length > 12 ? "size-medium" : "size-large");
         cards.dataset.zone = zone.id;
         if (!entries.length) {
           const empty = document.createElement("span");
@@ -380,20 +386,54 @@
       return url.replace(/100x100(?=bb)/g, `${size}x${size}`).replace(/100x100(?!bb)/g, `${size}x${size}`);
     }
 
+    async function fetchItunesResults(query, entity, signal) {
+      const endpoint = new URL("https://itunes.apple.com/search");
+      endpoint.search = new URLSearchParams({ term: query, media: "music", entity, limit: "10" });
+      const response = await fetch(endpoint, { signal });
+      if (!response.ok) throw new Error(`iTunes ${entity} search returned HTTP ${response.status}`);
+      const data = await response.json();
+      return data.results || [];
+    }
+
+    function relevanceScore(album, query) {
+      const title = album.collectionName.toLocaleLowerCase();
+      const artist = album.artistName.toLocaleLowerCase();
+      const normalizedQuery = query.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      const words = normalizedQuery.split(/\s+/).filter(Boolean);
+      const wordScore = words.reduce((score, word) =>
+        score + (title.includes(word) ? 2 : 0) + (artist.includes(word) ? 1 : 0), 0);
+      return wordScore + (artist && normalizedQuery.includes(artist) ? 4 : 0);
+    }
+
     async function searchAlbums(query) {
       if (searchRequest) searchRequest.abort();
       searchRequest = new AbortController();
       const request = searchRequest;
       try {
-        const endpoint = new URL("https://itunes.apple.com/search");
-        endpoint.search = new URLSearchParams({ term: query, media: "music", entity: "album", limit: "10" });
-        const response = await fetch(endpoint, { signal: request.signal });
-        if (!response.ok) throw new Error(`iTunes returned HTTP ${response.status}`);
-        const data = await response.json();
+        const responses = await Promise.allSettled([
+          fetchItunesResults(query, "album", request.signal),
+          fetchItunesResults(query, "song", request.signal)
+        ]);
         if (request !== searchRequest) return;
-        renderResults(data.results || []);
+        const available = responses.filter(result => result.status === "fulfilled");
+        if (!available.length) {
+          throw new Error(responses.map(result => result.reason.message).join("; "));
+        }
+        const albumsById = new Map();
+        available.forEach(response => {
+          response.value.forEach(item => {
+            if (item.collectionId && item.collectionName && item.artistName && item.artworkUrl100) {
+              const id = String(item.collectionId);
+              if (!albumsById.has(id)) albumsById.set(id, item);
+            }
+          });
+        });
+        const rankedAlbums = [...albumsById.values()]
+          .sort((a, b) => relevanceScore(b, query) - relevanceScore(a, query))
+          .slice(0, 10);
+        renderResults(rankedAlbums);
       } catch (error) {
-        if (error.name !== "AbortError") {
+        if (!request.signal.aborted) {
           results.classList.add("hidden");
           showNotice(`Album search failed: ${error.message}`, true);
         }
